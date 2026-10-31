@@ -1,0 +1,16 @@
+# Recorded core study environment: Python 3.11, Windows, CUDA 11.7 PyTorch build.
+# Install a platform-compatible PyTorch distribution separately when needed.
+# This is a study-version record, not a claim of cross-platform bitwise identity.
+numpy==1.26.4
+pandas==3.0.1
+scipy==1.16.3
+scikit-learn==1.7.2
+statsmodels==0.14.6
+joblib==1.5.2
+PyYAML==6.0.3
+xgboost==2.1.4
+torch==2.0.1
+pyPPG==1.0.73
+neurokit2==0.2.10
+dotmap==1.3.30
+wfdb==4.3.1

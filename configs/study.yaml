@@ -1,0 +1,51 @@
+feature_schema: feature_schema.json
+outer_folds: 5
+inner_folds: 3
+require_frozen_EDU_folds: true
+bootstrap_iterations: 2000
+models: [full_pyppg, clinical, anyppg, fusion_top10, neural_fusion, clinical_fusion, clinical_neural_fusion, clinical_fusion_logistic]
+transfer_models: [full_pyppg, clinical, anyppg, fusion_top10, neural_fusion, clinical_fusion, clinical_neural_fusion, clinical_fusion_logistic, net1d]
+clinical:
+  EDU: [age, sex_female, sbp, dbp]
+  MIMIC: [age, sex_female, sbp, dbp, hr]
+seeds:
+  internal_split: 17
+  EDU_fit_hash_base: 42
+  MIMIC_fit: 17
+  transfer: 61007
+  mimic_selection: 42
+  bootstrap: 42
+  waveform: 20261022
+grids:
+  extra_trees:
+    - {max_features: sqrt, min_samples_leaf: 2}
+    - {max_features: 0.2, min_samples_leaf: 5}
+  xgboost:
+    - {max_depth: 2, learning_rate: 0.03}
+    - {max_depth: 3, learning_rate: 0.05}
+  logistic_l2:
+    - {C: 0.1}
+    - {C: 1.0}
+  torch_mlp:
+    - {hidden: 64, dropout: 0.15}
+update_grids:
+  xgboost:
+    - {extra_trees: 20}
+    - {extra_trees: 50}
+    - {extra_trees: 100}
+  logistic_l2:
+    - {anchor: 0.01}
+    - {anchor: 0.1}
+    - {anchor: 1.0}
+  torch_mlp:
+    - {epochs: 20, lr: 0.0001}
+    - {epochs: 20, lr: 0.001}
+net1d:
+  epochs: 20
+  validate_every: 5
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.001
+  gradient_clip: 1.0
+expected_encoder_code_sha256: c974c38fe5e213f3155b9e0cdb0a4b7f4324f19e47e479614617cbfcba86b1fc
+expected_checkpoint_sha256: 99b9bb0a3c2b83a1f5d8ca2963fbd25329b6530e8d337de8825722fc6fd5f4fa

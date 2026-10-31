@@ -1,0 +1,15 @@
+feature_schema: feature_schema.json
+outer_folds: 3
+inner_folds: 2
+require_frozen_EDU_folds: false
+bootstrap_iterations: 50
+models: [clinical, clinical_fusion_logistic]
+transfer_models: [clinical, clinical_fusion_logistic]
+clinical:
+  EDU: [age, sex_female, sbp, dbp]
+  MIMIC: [age, sex_female, sbp, dbp, hr]
+seeds: {internal_split: 17, transfer: 61007, mimic_selection: 42, bootstrap: 42, waveform: 20261022}
+grids:
+  logistic_l2: [{C: 0.1}]
+update_grids:
+  logistic_l2: [{anchor: 0.1}]
