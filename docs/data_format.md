@@ -43,7 +43,7 @@ Transfer `--roles` accepts either a role dictionary or a dictionary under `split
 
 Cross-sectional statistics use the feature-level dataset above and median-aggregate MIMIC segments by patient. Longitudinal CSV contains one row per `patient_id,stage`, where `stage` is `pre`, `post` or `followup`, and all 510 inference-feature columns. Missing values stay NaN. Both paired and unpaired pre/post observations enter the random-intercept model. Follow-up tests use the available patient pairs separately.
 
-Optional waveform-template inputs use `segments.csv` with `patient_id`, `stage`, `cohort`, `fs`, `signal_path` and `processing_state`. Template generation uses complete onset-to-next-onset pulses. Real-time templates do not time-warp beats; all derivative channels share the PPG amplitude scale. Minimum within-segment and within-patient support is 50%; population display coverage is 90%. Population summaries use one template per patient. For paired-stage intervals, pass shared bootstrap indices to `population_waveform`.
+Optional waveform-template inputs use `segments.csv` with `patient_id`, `stage`, `cohort`, `fs`, `signal_path` and `processing_state`. Template generation uses complete onset-to-next-onset pulses. Real-time templates do not time-warp beats; all derivative channels share the PPG amplitude scale. Minimum within-segment and within-patient support is 50%; population display coverage is 90%. Population summaries use one template per patient. The CLI additionally exports paired pre/post summaries using matched patient IDs and shared bootstrap draws. All exported groups use the common contiguous interval meeting 90% patient coverage. The function API also accepts shared bootstrap indices explicitly.
 
 ## Outputs
 
