@@ -54,7 +54,7 @@ def main():
         f=pd.read_csv(args.predictions,dtype={'patient_id':str});p=pd.read_csv(args.patients,dtype={'patient_id':str}) if args.patients else None
         args.output.parent.mkdir(parents=True,exist_ok=True);capture_enrichment(f,pre_tavi=p).to_csv(args.output,index=False)
     elif args.command=='morphology':
-        from .morphology import longitudinal,cross_sectional,templates_from_segments,population_waveform
+        from .morphology import longitudinal,cross_sectional,templates_from_segments,grouped_population
         args.output.mkdir(parents=True,exist_ok=True)
         if args.data:
             if not args.cohort:parser.error('--data needs --cohort')
@@ -65,8 +65,7 @@ def main():
         if args.waveforms:
             rows,templates=templates_from_segments(pd.read_csv(args.waveforms/'segments.csv',dtype={'patient_id':str}),args.waveforms)
             rows.to_csv(args.output/'template_index.csv',index=False);np.savez_compressed(args.output/'templates.npz',templates=templates,time_seconds=np.arange(91)/60)
-            for stage in rows.stage.unique():
-                values=templates[rows.stage.eq(stage)];center,low,high,coverage=population_waveform(values,cfg['bootstrap_iterations'],cfg['seeds']['waveform'])
+            for stage,(center,low,high,coverage) in grouped_population(rows,templates,cfg['bootstrap_iterations'],cfg['seeds']['waveform']).items():
                 np.savez_compressed(args.output/(stage+'_population.npz'),median=center,ci_low=low,ci_high=high,coverage=coverage)
         if not any([args.data,args.longitudinal,args.waveforms]):parser.error('Choose --data, --longitudinal or --waveforms')
     elif args.command=='demo':

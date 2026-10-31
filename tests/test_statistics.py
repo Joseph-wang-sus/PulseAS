@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from statsmodels.stats.multitest import multipletests
-from pulseas.morphology import bh_complete_family,pulse_template,population_waveform
+from pulseas.morphology import bh_complete_family,pulse_template,population_waveform,grouped_population
 from pulseas.stratification import capture_enrichment
 from pulseas.evaluation import paired_delta,bootstrap_performance
 
@@ -39,3 +39,13 @@ def test_waveform_has_real_time_and_shared_derivative_scaling():
     median,low,high,coverage=population_waveform(np.stack([template,template]),20)
     np.testing.assert_allclose(median[:,:61],template[:,:61])
     assert coverage[:61].all() and not coverage[61:].any()
+
+
+def test_paired_waveforms_share_patient_draws_and_common_interval():
+    index=pd.DataFrame({'patient_id':['a','b','b','a'],'stage':['pre','pre','post','post']})
+    x=np.stack([np.full((2,91),v) for v in [1.,3.,3.,1.]])
+    x[0,:,75:]=np.nan
+    groups=grouped_population(index,x,20)
+    assert all(np.isnan(a[:,75:]).all() for values in groups.values() for a in values[:3])
+    # Matching patient values and draws yield identical paired-stage confidence bands.
+    for a,b in zip(groups['paired_pre'][:3],groups['paired_post'][:3]):np.testing.assert_allclose(a[:,:75],b[:,:75])

@@ -155,6 +155,29 @@ def population_waveform(patient_templates,iterations=2000,seed=20261022,indices=
     return center,low,high,coverage
 
 
+def grouped_population(index,templates,iterations=2000,seed=20261022):
+    """Common coverage across groups and shared patient draws for paired pre/post."""
+    summaries={}
+    for stage in index.stage.unique():
+        summaries[str(stage)]=population_waveform(templates[index.stage.eq(stage)],iterations,seed)
+    if {'pre','post'}<=set(index.stage):
+        pre=index.loc[index.stage.eq('pre')].reset_index();post=index.loc[index.stage.eq('post')].reset_index()
+        ids=sorted(set(pre.patient_id)&set(post.patient_id))
+        if ids:
+            a=pre.set_index('patient_id').loc[ids,'index'].to_numpy(int);b=post.set_index('patient_id').loc[ids,'index'].to_numpy(int)
+            draws=np.random.default_rng(seed).integers(0,len(ids),size=(iterations,len(ids)))
+            summaries['paired_pre']=population_waveform(templates[a],iterations,seed,draws)
+            summaries['paired_post']=population_waveform(templates[b],iterations,seed,draws)
+    common=np.logical_and.reduce([v[3] for v in summaries.values()])
+    # Use the common contiguous display interval from onset, not disconnected islands.
+    if (~common).any():common[np.flatnonzero(~common)[0]:]=False
+    result={}
+    for name,(center,low,high,coverage) in summaries.items():
+        for a in [center,low,high]:a[:,~common]=np.nan
+        result[name]=(center,low,high,common.copy())
+    return result
+
+
 def templates_from_segments(segments,folder):
     """Native complete pulses -> segment medians -> patient-stage medians."""
     from pathlib import Path

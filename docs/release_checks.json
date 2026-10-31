@@ -1,11 +1,11 @@
 {
   "release": "0.1.0",
   "synthetic_CPU_tests": {
-    "passed": 12,
+    "passed": 13,
     "GPU_tests_excluded": 2
   },
   "recorded_environment_tests": {
-    "passed": 14,
+    "passed": 15,
     "CUDA": true
   },
   "CPU_demo_clean_environment": true,
@@ -47,5 +47,6 @@
   "signal_template_check": true,
   "clinical_data_distributed": false,
   "weights_distributed": false,
-  "full_manuscript_retraining_performed": false
+  "full_manuscript_retraining_performed": false,
+  "paired_waveform_bootstrap_and_common_interval": true
 }
