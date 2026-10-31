@@ -24,4 +24,3 @@ checkpoints/
 *.docx
 *.pdf
 *.log
-!docs/source_manifest.json

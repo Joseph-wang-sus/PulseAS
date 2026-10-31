@@ -12,5 +12,3 @@ The MIT licence at the repository root applies to original PulseAS project code.
 | PyTorch | https://pytorch.org | Neural modules; BSD-style upstream terms. |
 | XGBoost | https://github.com/dmlc/xgboost | Gradient-boosted trees; Apache-2.0. |
 | NumPy, SciPy, pandas, scikit-learn, statsmodels, joblib, PyYAML | Respective upstream projects | Installed dependencies retain their respective licences. |
-
-The original development workspace also contains rPPG-Toolbox and other third-party projects. Their complete directories, unrelated implementations, assets and licences are not copied into this compact release. Any downstream redistribution of those projects must follow their own terms.

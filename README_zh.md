@@ -1,72 +1,67 @@
 # PulseAS
 
-本项目整理PPG主动脉瓣狭窄（AS）研究的核心处理和分析代码，包括信号质量处理、形态特征与冻结AnyPPG表征、八种内部模型策略、MIMIC→EDU外部迁移和本地适配、临床增量比较、AS/pre-TAVI评分分层及纵向形态统计。
+基于短时PPG、波形标志物和常规临床信息的主动脉瓣狭窄（AS）评估框架。
 
-## 架构
+[English](README.md) · [快速运行](#快速运行) · [输入格式](docs/data_format.md) · [分析说明](docs/reproducibility.md)
 
-```text
-15秒PPG
- ├─ EDU质量检查／MIMIC Ext-PPG筛选
- ├─ 918项pyPPG汇总特征 ─ 训练折内选择Top-10 ─┐
- └─ 中央10秒输入 ─ 冻结AnyPPG的512维表征 ───┼─ 融合与临床联合模型
-                                          ├─ 两队列分别开展患者级嵌套交叉验证
-                                          ├─ MIMIC→EDU外部验证及20%本地适配
-                                          └─ OOF评分的AS/pre-TAVI病例富集
-510项特征检验族 ─ 疾病相关形态、术前术后混合模型及随访配对检验
-```
+## 研究概览
 
-`src/pulseas`中的各模块分别负责输入、信号、特征、模型、验证、迁移、评价、分层和形态分析。代码不依赖原来的私人磁盘目录，也不需要导入历史AR实验模块。
+[![Fig. 1：PulseAS研究概览](assets/fig1workflow.png)](assets/fig1workflow.svg)
 
-## 安装与示例
+**Fig. 1：PulseAS研究概览。** 研究以15秒PPG和临床信息开展AS评估，并分析疾病相关脉搏形态、瓣膜干预前后变化，以及MIMIC-III至EDU的外部验证和本地适配。[查看完整图片](assets/fig1workflow.png)。
 
-正式运行环境建议Python 3.11；CPU特征级示例也支持Python 3.12。在仓库根目录执行：
+## 数据说明
+
+仓库包含核心代码、配置和合成示例。临床数据、患者级预测及模型权重不随仓库发布。EDU和MIMIC-III数据分别遵循机构及PhysioNet的访问要求。
+
+使用者需提供符合[输入格式](docs/data_format.md)的分析数据。患者匹配、人工筛选和临床标注在进入本流程前完成，仓库不包含这些操作脚本。
+
+## 快速运行
+
+建议使用Python 3.11；CPU示例也支持Python 3.12。
 
 ```bash
+git clone https://github.com/Joseph-wang-sus/PulseAS.git
+cd PulseAS
 python -m venv .venv
-# Windows激活：.venv\Scripts\activate
-# Linux/macOS激活：source .venv/bin/activate
+# Linux/macOS：source .venv/bin/activate
+# Windows：.venv/Scripts/activate
 python -m pip install -e '.[dev]'
-python -m pytest -q -m 'not gpu'
 python -m pulseas demo --output outputs/demo
 ```
 
-示例自动生成虚构患者、模拟的918维形态特征、512维表征、原始波形示例和纵向记录，并执行内部验证、迁移适配、性能评价、病例富集及形态检验。**示例中的表征为模拟数据，不是AnyPPG输出；示例结果不代表论文性能或临床验证。**
+示例生成虚构患者、模拟特征和纵向记录，执行验证、迁移适配、性能评价、评分分层及形态统计。无需临床数据或预训练权重。模拟表征不是AnyPPG输出，示例结果不代表论文性能。结果保存在`outputs/demo`中，生成的数据、模型和输出均不提交至Git。
 
-完整信号与GPU模型依赖可通过`python -m pip install -e '.[neural,signals,dev]'`安装。正式AnyPPG、XGBoost及神经模型路径要求CUDA，不会自动换成另一种模型或悄悄切换到CPU。原始研究版本见`requirements-lock.txt`，其中PyTorch原始CUDA构建为2.0.1+cu117。
+## 核心流程
 
-## 运行接口
+```text
+15秒PPG → 信号预处理 → 波形标志物与冻结AnyPPG表征
+        → 融合临床信息 → 队列内验证／跨队列迁移
+        → 性能评价、AS/pre-TAVI评分分层及形态分析
+```
 
-统一入口为`python -m pulseas`，提供：
+EDU与MIMIC-III分别开发和内部验证模型。跨队列分析使用MIMIC-III来源模型，在EDU中进行外部验证及本地适配。围术期记录用于独立的形态分析。
 
-| 子命令 | 功能 |
-|---|---|
-| `prepare` | 原始信号处理，或已生成特征的输入核查 |
-| `extract` | pyPPG及真实冻结AnyPPG表征提取 |
-| `validate` | 各队列分别进行患者级嵌套验证 |
-| `transfer` | MIMIC来源模型、EDU零样本评价与本地适配 |
-| `evaluate` | 性能、bootstrap、亚组及匹配临床比较 |
-| `stratify` | AS与pre-TAVI病例捕获和富集 |
-| `morphology` | 510项形态检验及完整脉搏模板 |
-| `demo` | 不需要临床数据和权重的合成示例 |
+| 入口 | 功能 |
+| --- | --- |
+| `prepare`、`extract` | 信号处理、形态特征和冻结表征提取 |
+| `validate`、`transfer` | 队列内验证、外部验证和本地适配 |
+| `evaluate`、`stratify` | 性能、临床增量和AS/pre-TAVI病例富集 |
+| `morphology` | 疾病相关形态及术前、术后、随访分析 |
+| `demo` | 合成数据流程演示 |
 
-完整参数示例见[英文README](README.md)。全局`--config`参数放在子命令前。`configs/study.yaml`保留正式预算；`configs/demo.yaml`仅用于轻量演示。PulseAS–XGB、PulseAS–L2和PulseAS–MLP分别对应`clinical_fusion`、`clinical_fusion_logistic`及`clinical_neural_fusion`。
+统一入口为`python -m pulseas`。命令示例见[英文README](README.md)，参数可通过`python -m pulseas <command> --help`查看。全局`--config`放在子命令前。正式设置位于`configs/study.yaml`，轻量示例设置位于`configs/demo.yaml`。
 
-## 数据与方法边界
+## 项目结构
 
-- EDU与MIMIC分别开发和内部验证模型，不合并为一个训练池。
-- 特征选择、插补、缩放、调参、校准和阈值均限定在对应训练或开发数据内。
-- MIMIC患者等权，先聚合片段评分再校准；同一患者不跨验证折。
-- 正式EDU内部分析继承原有折分，需要通过`--folds`传入相同患者顺序和折分；公开代码不会把重新生成的AS单终点折分冒充原有折分。
-- 外部迁移使用20%的合格EDU患者作为适配与验证池；适配前后在同一80%留出测试集评价。
-- AnyPPG保持冻结；XGBoost添加树；逻辑回归向源系数约束更新；神经融合更新预测头；ExtraTrees仅再校准；来源Net1D接受全网络适配。
-- 918项提取特征与510项统计检验族分开；不能只对展示的代表特征进行BH校正。
-- pre-TAVI病例来自独立整理的术前状态和手术证据，不由AS分级推断，不进入AS模型输入。未知手术状态不等于没有手术。
-- 纵向数据不进入AS训练。术前术后模型估计的阶段差异不等于两个阶段中位数之差。
+`assets`存放论文Fig. 1；`src/pulseas`包含信号、特征、模型、验证、迁移、评价、分层与形态模块；`configs`存放配置及特征定义；`examples`提供合成数据生成器；`docs`说明输入及分析流程；`tests`核查核心行为。
 
-## 获取第三方代码与权重
+## 第三方模型与依赖
 
-从[AnyPPG原项目](https://github.com/Ngk03/AnyPPG)按上游许可获取`load_anyppg/resnet1d.py`及对应权重。代码保存研究使用的实现与权重哈希，用于识别版本，不分发权重。Net1D架构同时注明[Shenda Hong的resnet1d实现](https://github.com/hsd1503/resnet1d)。MIMIC筛选依赖的Ext-PPG工具另行提供，研究记录的上游提交为`667dc0f307de93d938c22f83feaeccc0b8e08cdf`。
+完整信号及神经模型依赖可通过`python -m pip install -e '.[neural,signals,dev]'`安装。正式AnyPPG、XGBoost和神经训练路径需要兼容的CUDA/PyTorch环境；研究环境版本记录于`requirements-lock.txt`。
 
-本仓库不包含EDU或MIMIC临床数据、患者预测结果、身份对照表、模型权重或访问凭据。获取真实数据仍须遵循相关机构和PhysioNet的访问要求。
+从[AnyPPG](https://github.com/Ngk03/AnyPPG)按上游要求获取编码器及权重，使用`extract`传入路径。Net1D架构注明[Shenda Hong的resnet1d实现](https://github.com/hsd1503/resnet1d)。信号处理使用pyPPG和NeuroKit2，原始MIMIC适配器所需的Ext-PPG工具另行提供。
 
-详见[输入格式](docs/data_format.md)、[复现说明](docs/reproducibility.md)与[第三方说明](THIRD_PARTY_NOTICES.md)。本项目自有代码采用MIT许可，第三方内容维持原有许可。
+运行检查：`python -m pytest -q -m 'not gpu'`。测试及GitHub自动检查使用合成输入。精确复现论文数值还需对应的研究数据、划分和第三方权重。
+
+自有代码采用[MIT许可](LICENSE)，第三方内容维持原有许可。详见[分析说明](docs/reproducibility.md)及[第三方说明](THIRD_PARTY_NOTICES.md)。

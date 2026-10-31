@@ -7,7 +7,6 @@ import warnings
 
 import neurokit2 as nk
 import numpy as np
-from scipy.signal import find_peaks
 
 
 QUALITY_SCHEME_VERSION = "edu_ppg_qc_v2_20260921"
@@ -25,8 +24,6 @@ class PPGQualityThresholds:
     no_finger_ratio_max: float = 0.50
     no_finger_run_max_samples: int = 59
     normalized_step_max: float = 0.50
-    rhythm_rr_cv_review_threshold: float = 0.20
-    rhythm_rr_mad_review_threshold: float = 0.10
 
     @property
     def expected_samples(self) -> int:
@@ -149,45 +146,6 @@ def amplitude_stationarity_metrics(
     }
 
 
-def rhythm_irregularity_metrics(
-    cleaned: np.ndarray,
-    sampling_rate: int = 60,
-    thresholds: PPGQualityThresholds | None = None,
-) -> dict[str, Any]:
-    cleaned = np.asarray(cleaned, dtype=float)
-    signal_range = float(np.ptp(cleaned)) if cleaned.size else np.nan
-    prominence = max(0.08 * signal_range, 1e-6) if np.isfinite(signal_range) else 1e-6
-    peaks, _ = find_peaks(
-        cleaned,
-        distance=max(1, int(round(0.40 * sampling_rate))),
-        prominence=prominence,
-    )
-    intervals = np.diff(peaks).astype(float) / sampling_rate
-    if intervals.size >= 2 and float(np.mean(intervals)) > 0:
-        rr_cv = float(np.std(intervals) / np.mean(intervals))
-        median_interval = float(np.median(intervals))
-        rr_mad = (
-            float(np.median(np.abs(intervals - median_interval)) / median_interval)
-            if median_interval > 0
-            else np.nan
-        )
-    else:
-        rr_cv = np.nan
-        rr_mad = np.nan
-
-    thresholds = thresholds or PPGQualityThresholds(sampling_rate=sampling_rate)
-    rhythm_review = bool(
-        (np.isfinite(rr_cv) and rr_cv > thresholds.rhythm_rr_cv_review_threshold)
-        or (np.isfinite(rr_mad) and rr_mad > thresholds.rhythm_rr_mad_review_threshold)
-    )
-    return {
-        "detected_peak_count": int(len(peaks)),
-        "pulse_interval_cv": rr_cv,
-        "pulse_interval_robust_mad_ratio": rr_mad,
-        "rhythm_review_required": rhythm_review,
-    }
-
-
 def evaluate_ppg_quality_v2(
     cleaned_signal: np.ndarray,
     raw_signal: np.ndarray | None = None,
@@ -226,7 +184,6 @@ def evaluate_ppg_quality_v2(
 
     if cleaned_finite and cleaned_std > 1e-12:
         stationarity = amplitude_stationarity_metrics(cleaned, thresholds.sampling_rate)
-        rhythm = rhythm_irregularity_metrics(cleaned, thresholds.sampling_rate, thresholds)
     else:
         stationarity = {
             "three_second_amplitudes": [],
@@ -235,12 +192,6 @@ def evaluate_ppg_quality_v2(
             "local_two_second_amplitude_floor_ratio": np.nan,
             "first_two_second_amplitude_ratio": np.nan,
             "last_two_second_amplitude_ratio": np.nan,
-        }
-        rhythm = {
-            "detected_peak_count": 0,
-            "pulse_interval_cv": np.nan,
-            "pulse_interval_robust_mad_ratio": np.nan,
-            "rhythm_review_required": False,
         }
 
     reasons: list[str] = []
@@ -298,7 +249,6 @@ def evaluate_ppg_quality_v2(
         "max_abs_step": raw_max_step,
         "max_abs_step_over_range": raw_normalized_step,
         **stationarity,
-        **rhythm,
     }
 
 
